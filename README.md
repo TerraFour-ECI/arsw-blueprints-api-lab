@@ -42,55 +42,111 @@ src/main/java/edu/eci/arsw/blueprints
 
 > This separation follows the **logical layers** pattern (model, persistence, services, controllers), facilitating extension to new technologies or data sources.
 
-
 ## 📖 Lab Activities
 
-### 1. Familiarization with the code base
+### 1. Familiarization with the Code Base
 
-This project follows a layered architecture, separating domain models, persistence, business logic, and API controllers for clarity and maintainability. Below is a summary of the main components:
-
-
----
-
-**Model Layer (`model` package):**
-- `Blueprint`: Represents a blueprint drawing, uniquely identified by an `author` and a `name`. It contains a list of `Point` objects that define the shape. The class provides methods to retrieve its properties and to add new points. Equality and hash code are based on the author and name, ensuring uniqueness.
-- `Point`: An immutable record for a 2D point with integer coordinates `x` and `y`. Used to define the geometry of a blueprint.
-
-**Persistence Layer (`persistence` package):**
-- `BlueprintPersistence` (interface): Defines the contract for storing and retrieving blueprints, including methods for saving, fetching by author or name, listing all blueprints, and adding points to an existing blueprint.
-- `InMemoryBlueprintPersistence`: Implements the interface using a thread-safe map for fast, in-memory storage. It initializes with sample blueprints for demonstration and testing. All CRUD operations are supported, and errors (such as duplicate or missing blueprints) are handled with custom exceptions.
-- `BlueprintPersistenceException` and `BlueprintNotFoundException`: Custom exceptions to signal errors in persistence operations, such as trying to add a duplicate blueprint or requesting a non-existent one.
-
-**Service Layer (`services` package):**
-- `BlueprintsServices`: Central business logic layer. It receives requests from controllers, delegates data operations to the persistence layer, and applies any configured filters to blueprints before returning them. This class is annotated as a Spring `@Service` for automatic dependency injection. It ensures that business rules (such as filtering) are consistently applied.
-
-**Controller Layer (`controllers` package):**
-- `BlueprintsAPIController`: The REST API entry point. It exposes endpoints to:
-  - List all blueprints (`GET /blueprints`)
-  - Get blueprints by author (`GET /blueprints/{author}`)
-  - Get a specific blueprint by author and name (`GET /blueprints/{author}/{bpname}`)
-  - Create a new blueprint (`POST /blueprints`)
-  - Add a point to an existing blueprint (`PUT /blueprints/{author}/{bpname}/points`)
-  The controller uses standard HTTP status codes, validates input, and handles exceptions to provide clear API responses. It is annotated with `@RestController` and uses Spring's mapping annotations for routing.
-
-**Filters Layer (`filters` package):**
-- `BlueprintsFilter` (interface): Defines a contract for processing blueprints (e.g., removing redundant points).
-- `IdentityFilter`: Default filter that returns the blueprint unchanged. Other filters (like redundancy or undersampling) can be implemented and injected as needed.
+This project follows a **layered architecture** that cleanly separates domain models, persistence, business logic, and API controllers. Below is a detailed walkthrough of every component you should understand before extending the project.
 
 ---
 
-**Class Relationships and Flow Example:**
-1. A client sends a request to the API (e.g., to add a new blueprint).
-2. `BlueprintsAPIController` receives the request, validates the input, and calls the appropriate method in `BlueprintsServices`.
-3. `BlueprintsServices` delegates data operations to the persistence layer (`BlueprintPersistence`), and applies any filters if needed.
-4. The persistence implementation (e.g., `InMemoryBlueprintPersistence`) performs the requested operation and returns the result or throws an exception if there is an error.
-5. The controller formats the response, setting the correct HTTP status and body, and returns it to the client.
+#### 1.1 Model Layer (`model/`)
 
-**Design Highlights:**
-- **Separation of concerns:** Each layer has a single responsibility, making the codebase modular and easy to maintain.
-- **Extensibility:** New persistence mechanisms (e.g., PostgreSQL), filters, or business rules can be added with minimal changes to existing code.
-- **Testability:** Interfaces and dependency injection allow for easy mocking and unit testing of each layer.
-- **Robust error handling:** Custom exceptions and HTTP status codes provide clear feedback to API consumers.
+| Class | Type | Responsibility |
+|-------|------|----------------|
+| `Blueprint` | Class | Represents a drawing, uniquely identified by `author` + `name`. Holds an internal `List<Point>`. Equality and `hashCode` are based solely on author and name. |
+| `Point` | Record | Immutable 2-D coordinate `(int x, int y)`. Used to define the geometry of a blueprint. |
+
+Key behaviors to note:
+- `Blueprint.getPoints()` returns an **unmodifiable view** — you cannot mutate the list externally.
+- `Blueprint.addPoint(Point p)` is the only way to append a point after construction.
+- Two `Blueprint` objects are considered equal if they share the same `author` and `name`, regardless of their points.
+
+---
+
+#### 1.2 Persistence Layer (`persistence/`)
+
+| Component | Role |
+|-----------|------|
+| `BlueprintPersistence` | Interface defining the storage contract (save, get by author/name, list all, add point). |
+| `InMemoryBlueprintPersistence` | Concrete implementation using a thread-safe `ConcurrentHashMap`. Pre-loaded with sample blueprints for `john` and `jane`. |
+| `BlueprintNotFoundException` | Thrown when a requested blueprint does not exist. |
+| `BlueprintPersistenceException` | Thrown when a persistence constraint is violated (e.g., duplicate blueprint). |
+
+The map key is `"author:name"` — a simple composite string that guarantees uniqueness.
+
+Sample data loaded on startup:
+```
+john/house   → 4 points
+john/garage  → 3 points
+jane/garden  → 3 points
+```
+
+---
+
+#### 1.3 Service Layer (`services/`)
+
+`BlueprintsServices` is the **orchestration layer** between controllers and persistence. It:
+- Delegates all CRUD operations to the injected `BlueprintPersistence` bean.
+- Applies the injected `BlueprintsFilter` before returning blueprints to callers.
+- Is annotated `@Service`, so Spring manages its lifecycle and injects its dependencies automatically.
+
+> **Important:** Filters are only applied in `getBlueprint(author, name)` — not in `getAllBlueprints()` or `getBlueprintsByAuthor()`. Keep this in mind when extending the logic.
+
+---
+
+#### 1.4 Controller Layer (`controllers/`)
+
+`BlueprintsAPIController` exposes the REST API at `/blueprints` and maps HTTP verbs to service calls:
+
+| Method | Path | Action | Success Code |
+|--------|------|--------|-------------|
+| `GET` | `/blueprints` | List all blueprints | `200 OK` |
+| `GET` | `/blueprints/{author}` | Blueprints by author | `200 OK` |
+| `GET` | `/blueprints/{author}/{bpname}` | Single blueprint | `200 OK` |
+| `POST` | `/blueprints` | Create new blueprint | `201 Created` |
+| `PUT` | `/blueprints/{author}/{bpname}/points` | Add a point | `202 Accepted` |
+
+The inner record `NewBlueprintRequest` acts as the **DTO** for POST requests, validated with `@NotBlank` and `@Valid`.
+
+---
+
+#### 1.5 Filters Layer (`filters/`)
+
+| Filter | Profile | Behavior |
+|--------|---------|----------|
+| `IdentityFilter` | *(default)* | Returns the blueprint unchanged. |
+| `RedundancyFilter` | `redundancy` | Removes consecutive duplicate points. |
+| `UndersamplingFilter` | `undersampling` | Keeps only even-indexed points (1 out of every 2). |
+
+Filters are activated via **Spring profiles**. Only one filter bean is active at a time. To switch filters, run with:
+```bash
+# Redundancy filter
+mvn spring-boot:run -Dspring-boot.run.profiles=redundancy
+
+# Undersampling filter
+mvn spring-boot:run -Dspring-boot.run.profiles=undersampling
+```
+
+---
+
+#### 1.6 Request / Response Flow
+
+```
+Client
+  │
+  ▼
+BlueprintsAPIController        ← validates HTTP input, sets status codes
+  │
+  ▼
+BlueprintsServices             ← orchestrates business logic, applies filter
+  │
+  ▼
+BlueprintPersistence (impl)    ← reads/writes data store
+  │
+  ▼
+In-Memory Map / PostgreSQL     ← actual storage
+```
 
 ### 2. Migration to PostgreSQL persistence
 - Set up a PostgreSQL database (you can use Docker).  
