@@ -46,9 +46,51 @@ src/main/java/edu/eci/arsw/blueprints
 ## 📖 Lab Activities
 
 ### 1. Familiarization with the code base
-- Review the `model` package with the `Blueprint` and `Point` classes.  
-- Understand the `persistence` layer with `InMemoryBlueprintPersistence`.  
-- Analyze the `services` layer (`BlueprintsServices`) and the `BlueprintsAPIController` controller.
+
+This project follows a layered architecture, separating domain models, persistence, business logic, and API controllers for clarity and maintainability. Below is a summary of the main components:
+
+
+---
+
+**Model Layer (`model` package):**
+- `Blueprint`: Represents a blueprint drawing, uniquely identified by an `author` and a `name`. It contains a list of `Point` objects that define the shape. The class provides methods to retrieve its properties and to add new points. Equality and hash code are based on the author and name, ensuring uniqueness.
+- `Point`: An immutable record for a 2D point with integer coordinates `x` and `y`. Used to define the geometry of a blueprint.
+
+**Persistence Layer (`persistence` package):**
+- `BlueprintPersistence` (interface): Defines the contract for storing and retrieving blueprints, including methods for saving, fetching by author or name, listing all blueprints, and adding points to an existing blueprint.
+- `InMemoryBlueprintPersistence`: Implements the interface using a thread-safe map for fast, in-memory storage. It initializes with sample blueprints for demonstration and testing. All CRUD operations are supported, and errors (such as duplicate or missing blueprints) are handled with custom exceptions.
+- `BlueprintPersistenceException` and `BlueprintNotFoundException`: Custom exceptions to signal errors in persistence operations, such as trying to add a duplicate blueprint or requesting a non-existent one.
+
+**Service Layer (`services` package):**
+- `BlueprintsServices`: Central business logic layer. It receives requests from controllers, delegates data operations to the persistence layer, and applies any configured filters to blueprints before returning them. This class is annotated as a Spring `@Service` for automatic dependency injection. It ensures that business rules (such as filtering) are consistently applied.
+
+**Controller Layer (`controllers` package):**
+- `BlueprintsAPIController`: The REST API entry point. It exposes endpoints to:
+  - List all blueprints (`GET /blueprints`)
+  - Get blueprints by author (`GET /blueprints/{author}`)
+  - Get a specific blueprint by author and name (`GET /blueprints/{author}/{bpname}`)
+  - Create a new blueprint (`POST /blueprints`)
+  - Add a point to an existing blueprint (`PUT /blueprints/{author}/{bpname}/points`)
+  The controller uses standard HTTP status codes, validates input, and handles exceptions to provide clear API responses. It is annotated with `@RestController` and uses Spring's mapping annotations for routing.
+
+**Filters Layer (`filters` package):**
+- `BlueprintsFilter` (interface): Defines a contract for processing blueprints (e.g., removing redundant points).
+- `IdentityFilter`: Default filter that returns the blueprint unchanged. Other filters (like redundancy or undersampling) can be implemented and injected as needed.
+
+---
+
+**Class Relationships and Flow Example:**
+1. A client sends a request to the API (e.g., to add a new blueprint).
+2. `BlueprintsAPIController` receives the request, validates the input, and calls the appropriate method in `BlueprintsServices`.
+3. `BlueprintsServices` delegates data operations to the persistence layer (`BlueprintPersistence`), and applies any filters if needed.
+4. The persistence implementation (e.g., `InMemoryBlueprintPersistence`) performs the requested operation and returns the result or throws an exception if there is an error.
+5. The controller formats the response, setting the correct HTTP status and body, and returns it to the client.
+
+**Design Highlights:**
+- **Separation of concerns:** Each layer has a single responsibility, making the codebase modular and easy to maintain.
+- **Extensibility:** New persistence mechanisms (e.g., PostgreSQL), filters, or business rules can be added with minimal changes to existing code.
+- **Testability:** Interfaces and dependency injection allow for easy mocking and unit testing of each layer.
+- **Robust error handling:** Custom exceptions and HTTP status codes provide clear feedback to API consumers.
 
 ### 2. Migration to PostgreSQL persistence
 - Set up a PostgreSQL database (you can use Docker).  
