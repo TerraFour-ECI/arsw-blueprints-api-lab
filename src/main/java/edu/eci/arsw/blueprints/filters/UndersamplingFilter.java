@@ -9,8 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Undersampling: conserva 1 de cada 2 puntos (índices pares), reduciendo la densidad.
- * Perfil: "undersampling"
+ * Undersampling: keeps 1 out of every 2 points (even indices), reducing density.
+ * Profile: "undersampling"
  */
 @Component
 @Profile("undersampling")

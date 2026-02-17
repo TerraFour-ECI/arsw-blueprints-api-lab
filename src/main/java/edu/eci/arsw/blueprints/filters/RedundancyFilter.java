@@ -9,8 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Elimina puntos consecutivos duplicados (x,y) para reducir redundancia.
- * Perfil: "redundancy"
+ * Removes consecutive duplicate points (x,y) to reduce redundancy.
+ * Profile: "redundancy"
  */
 @Component
 @Profile("redundancy")
