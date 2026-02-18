@@ -148,11 +148,195 @@ BlueprintPersistence (impl)    ← reads/writes data store
 In-Memory Map / PostgreSQL     ← actual storage
 ```
 
-### 2. Migration to PostgreSQL persistence
-- Set up a PostgreSQL database (you can use Docker).  
-- Implement a new repository `PostgresBlueprintPersistence` to replace the in-memory version.  
-- Maintain the contract of the `BlueprintPersistence` interface.  
+### 2. Migration to PostgreSQL Persistence
 
+This section describes how the persistence layer was migrated from in-memory storage (`InMemoryBlueprintPersistence`) to a real PostgreSQL database, while maintaining the `BlueprintPersistence` interface contract without modifying any other layer of the project.
+
+---
+
+#### 2.1 Solution Architecture
+
+The following components were added without touching the existing code:
+
+```
+persistence/
+  ├── entity/
+  │    ├── BlueprintEntity.java        ← JPA entity for the blueprints table
+  │    └── PointEntity.java            ← JPA entity for the points table
+  ├── jpa/
+  │    └── BlueprintJpaRepository.java ← Spring Data JPA (auto-generated queries)
+  └── impl/
+       └── PostgresBlueprintPersistence.java ← Implements BlueprintPersistence
+```
+
+The Postgres implementation is only activated with the `postgres` Spring profile (`@Profile("postgres")`) and is annotated with `@Primary` to override `InMemoryBlueprintPersistence` when that profile is active.
+
+---
+
+#### 2.2 Dependencies Added to `pom.xml`
+
+```xml
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-data-jpa</artifactId>
+</dependency>
+<dependency>
+  <groupId>org.postgresql</groupId>
+  <artifactId>postgresql</artifactId>
+  <scope>runtime</scope>
+</dependency>
+```
+
+---
+
+#### 2.3 Database Configuration
+
+The file `src/main/resources/application-postgres.properties` was created (only active with the `postgres` profile):
+
+```properties
+# DataSource
+spring.datasource.url=jdbc:postgresql://localhost:5432/blueprints
+spring.datasource.username=postgres
+spring.datasource.password=postgres
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# JPA / Hibernate
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+# Seed data
+spring.sql.init.mode=always
+spring.jpa.defer-datasource-initialization=true
+```
+
+> **Note:** `ddl-auto=update` lets Hibernate create/update tables automatically on startup. No SQL script needs to be run manually.
+
+---
+
+#### 2.4 Starting PostgreSQL with Docker
+
+**Prerequisite:** have [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+
+```bash
+docker run --name blueprints-db \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=blueprints \
+  -p 5432:5432 \
+  -d postgres:16
+```
+
+Verify the container is running:
+
+```bash
+docker ps
+```
+
+You should see `blueprints-db` with status `Up`.
+
+> **⚠️ Common issue on Windows:** if port 5432 is already in use by a local PostgreSQL installation, stop that service before running Docker, or change the container port to `-p 5433:5432` and update the URL in `application-postgres.properties` to `jdbc:postgresql://localhost:5433/blueprints`.
+
+---
+
+#### 2.5 Running the Application with the `postgres` Profile
+
+```bash
+mvn spring-boot:run "-Dspring-boot.run.profiles=postgres"
+```
+
+On successful startup you will see in the logs:
+
+```
+HikariPool-1 - Start completed.
+Hibernate: create table if not exists blueprints ...
+Hibernate: create table if not exists points ...
+Tomcat started on port 8080 (http)
+```
+
+---
+
+#### 2.6 Verifying Data in the Database
+
+Connect to the container and query the tables:
+
+```bash
+docker exec -it blueprints-db psql -U postgres -d blueprints
+```
+
+```sql
+-- List created tables
+\dt
+
+-- View blueprints
+SELECT * FROM blueprints;
+
+-- View blueprints with their points
+SELECT b.author, b.name, p.x, p.y, p.position
+FROM blueprints b JOIN points p ON p.blueprint_id = b.id
+ORDER BY b.author, b.name, p.position;
+```
+
+Expected output:
+
+```
+ author | name  | x  | y  | position
+--------+-------+----+----+----------
+ john   | house |  0 |  0 |        0
+ john   | house | 10 |  0 |        1
+ john   | house | 10 | 10 |        2
+ john   | house |  0 | 10 |        3
+```
+
+---
+
+#### 2.7 Auto-Generated Relational Model
+
+Hibernate automatically generates two tables:
+
+**`blueprints`**
+| Column | Type    | Description                  |
+|--------|---------|------------------------------|
+| id     | BIGINT  | Auto-incremental PK          |
+| author | VARCHAR | Blueprint author             |
+| name   | VARCHAR | Blueprint name               |
+
+With a UNIQUE constraint on `(author, name)`.
+
+**`points`**
+| Column       | Type   | Description                        |
+|--------------|--------|------------------------------------|
+| id           | BIGINT | Auto-incremental PK                |
+| x            | INT    | X coordinate                       |
+| y            | INT    | Y coordinate                       |
+| position     | INT    | Point order within the blueprint   |
+| blueprint_id | BIGINT | FK → blueprints(id)                |
+
+---
+
+#### 2.8 Running Without a Database (InMemory mode)
+
+If Docker is not available or you want to run the app without PostgreSQL, simply run without any profile. Spring will automatically use `InMemoryBlueprintPersistence`:
+
+```bash
+mvn spring-boot:run
+```
+
+---
+
+#### 2.9 Stopping and Restarting the Container
+
+```bash
+# Stop the container
+docker stop blueprints-db
+
+# Restart it (data is preserved)
+docker start blueprints-db
+
+# Remove it completely (deletes all data)
+docker rm -f blueprints-db
+```
+  
 ### 3. REST API Best Practices
 - Change the base path of controllers to `/api/v1/blueprints`.  
 - Use correct **HTTP codes**:  
