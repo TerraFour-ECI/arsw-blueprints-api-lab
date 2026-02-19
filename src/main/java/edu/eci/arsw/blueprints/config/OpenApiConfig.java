@@ -19,13 +19,13 @@ public class OpenApiConfig {
                         .title("ARSW Blueprints API")
                         .version("v1")
                         .description("""
-                                REST API para gestión de planos (blueprints).
+                                REST API for blueprint management.
                                 
-                                **Características:**
-                                - Persistencia en memoria o PostgreSQL
-                                - Filtros configurables (redundancia, undersampling)
-                                - Validación de datos con Bean Validation
-                                - Respuestas uniformes con ApiResponse<T>
+                                **Features:**
+                                - In-memory or PostgreSQL persistence
+                                - Configurable filters (reduancy, undersampling)
+                                - Data validation with Bean Validation
+                                - Uniform responses using ApiResponse<T>
                                 """)
                 )
                 .servers(List.of(
@@ -34,5 +34,6 @@ public class OpenApiConfig {
                                 .description("Development Server")
                 ));
     }
+
 }
 
