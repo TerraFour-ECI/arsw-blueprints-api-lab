@@ -1,5 +1,5 @@
 ## Lab #4 – REST API Blueprints (Java 21 / Spring Boot 3.3.x)
-# Colombian School of Engineering – Software Architectures  
+# Colombian School of Engineering – Software Architecture 
 
 
 ## 📋 Requirements
