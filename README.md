@@ -359,9 +359,309 @@ docker rm -f blueprints-db
   ```
 
 ### 4. OpenAPI / Swagger
+
 - Configure `springdoc-openapi` in the project.  
 - Expose automatic documentation at `/swagger-ui.html`.  
 - Annotate endpoints with `@Operation` and `@ApiResponse`.
+
+
+---
+
+#### 4.1 Configuration
+
+Added the following dependency to `pom.xml`:
+
+```xml
+<dependency>
+  <groupId>org.springdoc</groupId>
+  <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+  <version>2.6.0</version>
+</dependency>
+```
+
+Created `OpenApiConfig.java` to customize the API documentation:
+
+```java
+@Configuration
+public class OpenApiConfig {
+    @Bean
+    public OpenAPI api() {
+        return new OpenAPI()
+            .info(new Info()
+                .title("ARSW Blueprints API")
+                .version("v1")
+                .description("REST API for blueprint management")
+            )
+            .servers(List.of(
+                new Server()
+                    .url("http://localhost:8080")
+                    .description("Development Server")
+            ));
+    }
+}
+```
+
+---
+
+#### 4.2 Endpoint Annotations
+
+All endpoints in `BlueprintsAPIController` were annotated with OpenAPI metadata:
+
+- `@Operation`: Describes the endpoint's purpose and behavior
+- `@ApiResponses`: Documents all possible HTTP response codes
+- `@Parameter`: Describes path/query parameters
+- `@Schema`: Provides examples and validation rules for request/response bodies
+
+**Example:**
+
+```java
+@Operation(
+    summary = "Get all blueprints",
+    description = "Returns the complete list of blueprints stored in the system"
+)
+@ApiResponses(value = {
+    @ApiResponse(
+        responseCode = "200",
+        description = "Blueprint list successfully retrieved"
+    )
+})
+@GetMapping
+public ResponseEntity<ApiResponse<Set<Blueprint>>> getAll() {
+    // ...
+}
+```
+
+---
+
+#### 4.3 Accessing Swagger UI
+
+Once the application is running, access the interactive documentation at:
+
+🔗 **Swagger UI:** [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+
+
+![Swagger](images/swagger.png)
+
+---
+
+#### 4.4 Testing Endpoints via Swagger UI
+
+Below are examples of testing each endpoint through the Swagger interface, along with database verification.
+
+##### 4.4.1 GET `/api/v1/blueprints` - Get All Blueprints
+
+**Swagger UI Interface:**
+
+![GET All Blueprints - Swagger](images/swagger-get-all.png)
+*Testing the getAllBlueprints endpoint*
+
+**Response:**
+
+![GET All Blueprints - Response](images/swagger-get-all-response.png)
+*Successful response showing all blueprints*
+
+**Database Verification:**
+
+![Database - All Blueprints](images/db-all-blueprints.png)
+*PostgreSQL query confirming data persistence*
+
+```sql
+SELECT * FROM blueprints;
+```
+
+---
+
+##### 4.4.2 GET `/api/v1/blueprints/{author}` - Get Blueprints by Author
+
+**Swagger UI Interface:**
+
+![GET By Author - Swagger](images/swagger-get-by-author.png)
+*Testing with author parameter "jane"*
+
+**Response:**
+
+![GET By Author - Response](images/swagger-get-by-author-response.png)
+*Filtered blueprints for the specified author*
+
+**Database Verification:**
+
+![Database - By Author](images/db-by-author.png)
+*PostgreSQL query filtering by author*
+
+```sql
+SELECT * FROM blueprints WHERE author = 'jane';
+```
+
+---
+
+##### 4.4.3 GET `/api/v1/blueprints/{author}/{bpname}` - Get Specific Blueprint
+
+**Swagger UI Interface:**
+
+![GET Specific - Swagger](images/swagger-get-specific.png)
+*Testing with author "john" and blueprint "house"*
+
+**Response:**
+
+![GET Specific - Response](images/swagger-get-specific-response.png)
+*Complete blueprint details including all points*
+
+**Database Verification:**
+
+![Database - Specific Blueprint](images/db-specific.png)
+*PostgreSQL query with JOIN to show blueprint and its points*
+
+```sql
+SELECT b.author, b.name, p.x, p.y, p.position
+FROM blueprints b 
+JOIN points p ON p.blueprint_id = b.id
+WHERE b.author = 'john' AND b.name = 'house'
+ORDER BY p.position;
+```
+
+---
+
+##### 4.4.4 POST `/api/v1/blueprints` - Create New Blueprint
+
+**Swagger UI Interface:**
+
+![POST Create - Swagger](images/swagger-post-create.png)
+*Creating a new blueprint with request body*
+
+**Request Body Example:**
+
+```json
+{
+  "author": "alice",
+  "name": "mansion",
+  "points": [
+    {"x": 0, "y": 0},
+    {"x": 100, "y": 0},
+    {"x": 100, "y": 100},
+    {"x": 0, "y": 100}
+  ]
+}
+```
+
+**Response:**
+
+![POST Create - Response](images/swagger-post-response.png)
+*HTTP 201 Created with the created blueprint*
+
+**Database Verification:**
+
+![Database - After POST](images/db-after-post.png)
+*New blueprint and points inserted into PostgreSQL*
+
+```sql
+-- Verify blueprint was created
+SELECT * FROM blueprints WHERE author = 'alice' AND name = 'mansion';
+
+-- Verify points were saved
+SELECT p.* FROM points p
+JOIN blueprints b ON p.blueprint_id = b.id
+WHERE b.author = 'alice' AND b.name = 'mansion'
+ORDER BY p.position;
+```
+
+---
+
+##### 4.4.5 PUT `/api/v1/blueprints/{author}/{bpname}/points` - Add Point
+
+**Swagger UI Interface:**
+
+![PUT Add Point - Swagger](images/put-add-point.png)
+*Adding a new point to an existing blueprint*
+
+**Request Body Example:**
+
+```json
+{
+  "x": 50,
+  "y": 50
+}
+```
+
+**Response:**
+
+![PUT Add Point - Response](images/swagger-put-response.png)
+*HTTP 202 Accepted confirming point was added*
+
+
+**Database Verification:**
+
+![Database - After PUT](images/after-put.png)
+*New point successfully added*
+
+```sql
+SELECT p.x, p.y, p.position 
+FROM points p
+JOIN blueprints b ON p.blueprint_id = b.id
+WHERE b.author = 'alice' AND b.name = 'mansion'
+ORDER BY p.position;
+```
+
+---
+
+#### 4.5 Error Handling Examples
+
+##### 4.5.1 Blueprint Not Found (404)
+
+**Swagger UI:**
+
+![404 Error - Swagger](images/swagger-404.png)
+*Attempting to retrieve a non-existent blueprint*
+
+**Response:**
+
+```json
+{
+  "code": 404,
+  "message": "Blueprint not found: nonexistent/blueprint",
+  "data": null
+}
+```
+
+---
+
+##### 4.5.2 Duplicate Blueprint (403)
+
+**Swagger UI:**
+
+![403 Error - Swagger](images/swagger-403.png)
+*Attempting to create a blueprint that already exists*
+
+**Response:**
+
+```json
+{
+  "code": 403,
+  "message": "Blueprint already exists: john/house",
+  "data": null
+}
+```
+
+---
+
+##### 4.5.3 Invalid Request (400)
+
+**Swagger UI:**
+
+![400 Error - Swagger](images/swagger-400.png)
+*Sending a request with missing required fields*
+
+**Response:**
+
+```json
+{
+  "code": 400,
+  "message": "Validation failed",
+  "data": null
+}
+```
+
+---
+
 
 ### 5. *Blueprints* Filters
 - Implement filters:
