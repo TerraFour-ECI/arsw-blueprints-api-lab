@@ -101,9 +101,9 @@ public class BlueprintsAPIController {
             @Parameter(description = "Blueprint name", example = "house") 
             @PathVariable String bpname) {
         try {
-            Blueprint BP = services.getBlueprint(author, bpname);   
+            Blueprint bp = services.getBlueprint(author, bpname);   
             return ResponseEntity.ok(
-                    new ApiResponse<>(200, "execute ok", BP));
+                    new ApiResponse<>(200, "execute ok", bp));
         } catch (BlueprintNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(404, e.getMessage(), null));
         }
