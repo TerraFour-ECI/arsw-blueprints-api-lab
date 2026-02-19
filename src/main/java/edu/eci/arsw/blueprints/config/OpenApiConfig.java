@@ -23,7 +23,7 @@ public class OpenApiConfig {
                                 
                                 **Features:**
                                 - In-memory or PostgreSQL persistence
-                                - Configurable filters (reduancy, undersampling)
+                                - Configurable filters (redundancy, undersampling)
                                 - Data validation with Bean Validation
                                 - Uniform responses using ApiResponse<T>
                                 """)
