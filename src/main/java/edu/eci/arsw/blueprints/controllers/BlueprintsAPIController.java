@@ -68,6 +68,7 @@ public class BlueprintsAPIController {
     }
 
     // PUT /api/v1/blueprints/{author}/{bpname}/points
+    @PutMapping("/{author}/{bpname}/points")
     public ResponseEntity<ApiResponse<?>> addPoint(@PathVariable String author, @PathVariable String bpname,
                                       @RequestBody Point p) {
         try {
