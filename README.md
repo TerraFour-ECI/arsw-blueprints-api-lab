@@ -932,6 +932,217 @@ mvn spring-boot:run "-Dspring-boot.run.profiles=undersampling"
 
 ---
 
+### 6. Bonus
+
+This section covers the two bonus features added to the project: **Metrics with Actuator** and **Container Image** with Spring Boot's built-in `build-image` goal.
+
+---
+
+#### 6.1 Metrics with Spring Boot Actuator
+
+Spring Boot Actuator provides production-ready features such as health checks, application info, and JVM/HTTP metrics — all exposed through HTTP endpoints.
+
+---
+
+##### 6.1.1 Dependency Added
+
+The following dependency was added to `pom.xml`:
+
+```xml
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+```
+
+---
+
+##### 6.1.2 Configuration
+
+The following properties were added to `application.properties`:
+
+```properties
+# Actuator
+management.endpoints.web.exposure.include=health,info,metrics,env
+management.endpoint.health.show-details=always
+management.info.env.enabled=true
+info.app.name=ARSW Blueprints API
+info.app.version=1.0.0
+info.app.description=REST API for blueprint management - Lab 4 ARSW
+```
+
+| Property | Description |
+|----------|-------------|
+| `management.endpoints.web.exposure.include` | Selects which Actuator endpoints are exposed over HTTP |
+| `management.endpoint.health.show-details` | Shows detailed health information (disk space, DB status, etc.) |
+| `management.info.env.enabled` | Enables the `/actuator/info` endpoint with custom `info.*` properties |
+
+---
+
+##### 6.1.3 Available Endpoints
+
+Once the application is running, the following Actuator endpoints are available:
+
+| Endpoint | URL | Description |
+|----------|-----|-------------|
+| Health | [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) | Application health status and component details |
+| Info | [http://localhost:8080/actuator/info](http://localhost:8080/actuator/info) | Custom application metadata |
+| Metrics | [http://localhost:8080/actuator/metrics](http://localhost:8080/actuator/metrics) | List of all available metrics |
+| Env | [http://localhost:8080/actuator/env](http://localhost:8080/actuator/env) | Environment properties and active profiles |
+
+---
+
+##### 6.1.4 Testing Actuator Endpoints
+
+```bash
+# Health check
+curl -s http://localhost:8080/actuator/health | jq
+
+# Application info
+curl -s http://localhost:8080/actuator/info | jq
+
+# List all available metrics
+curl -s http://localhost:8080/actuator/metrics | jq
+
+# Get a specific metric (e.g., JVM memory usage)
+curl -s http://localhost:8080/actuator/metrics/jvm.memory.used | jq
+
+# Get HTTP server request metrics
+curl -s http://localhost:8080/actuator/metrics/http.server.requests | jq
+```
+
+**Expected `/actuator/health` response:**
+
+```json
+{
+  "status": "UP",
+  "components": {
+    "diskSpace": {
+      "status": "UP",
+      "details": {
+        "total": ...,
+        "free": ...,
+        "threshold": 10485760,
+        "path": "...",
+        "exists": true
+      }
+    },
+    "ping": {
+      "status": "UP"
+    }
+  }
+}
+```
+
+**Expected `/actuator/info` response:**
+
+```json
+{
+  "app": {
+    "name": "ARSW Blueprints API",
+    "version": "1.0.0",
+    "description": "REST API for blueprint management - Lab 4 ARSW"
+  }
+}
+```
+
+---
+
+#### 6.2 Container Image with `spring-boot:build-image`
+
+Spring Boot includes native support for building **OCI container images** using [Cloud Native Buildpacks](https://buildpacks.io/), without needing a Dockerfile. This produces optimized, layered images.
+
+---
+
+##### 6.2.1 Plugin Configuration
+
+The `spring-boot-maven-plugin` was configured in `pom.xml` with a custom image name:
+
+```xml
+<plugin>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-maven-plugin</artifactId>
+  <configuration>
+    <image>
+      <name>arsw-blueprints-api:${project.version}</name>
+    </image>
+  </configuration>
+</plugin>
+```
+
+---
+
+##### 6.2.2 Building the Image
+
+**Prerequisite:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) must be installed and running.
+
+```bash
+mvn spring-boot:build-image -DskipTests
+```
+
+This command:
+1. Compiles the project and packages the JAR.
+2. Uses Cloud Native Buildpacks to create an optimized Docker image.
+3. Tags the image as `arsw-blueprints-api:1.0.0`.
+
+On successful completion you will see:
+
+```
+Successfully built image 'docker.io/library/arsw-blueprints-api:1.0.0'
+```
+
+---
+
+##### 6.2.3 Running the Container
+
+```bash
+# Default mode (InMemory persistence, IdentityFilter)
+docker run -p 8080:8080 arsw-blueprints-api:1.0.0
+
+# With redundancy filter
+docker run -p 8080:8080 -e SPRING_PROFILES_ACTIVE=redundancy arsw-blueprints-api:1.0.0
+
+# With undersampling filter
+docker run -p 8080:8080 -e SPRING_PROFILES_ACTIVE=undersampling arsw-blueprints-api:1.0.0
+
+# With PostgreSQL (assumes blueprints-db container is running)
+docker run -p 8080:8080 \
+  -e SPRING_PROFILES_ACTIVE=postgres,redundancy \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/blueprints \
+  arsw-blueprints-api:1.0.0
+```
+
+---
+
+##### 6.2.4 Verifying the Container
+
+```bash
+# List images
+docker images | grep arsw-blueprints-api
+
+# Check the app is running
+curl -s http://localhost:8080/actuator/health | jq
+
+# Test the API
+curl -s http://localhost:8080/api/v1/blueprints | jq
+```
+
+---
+
+##### 6.2.5 Comparison: Dockerfile vs `build-image`
+
+| Feature | Dockerfile (manual) | `spring-boot:build-image` |
+|---------|--------------------|------------------------|
+| Requires Dockerfile |  Yes |  No |
+| Layered image | Manual configuration |  Automatic |
+| Reproducible builds | Depends on base image |  Buildpacks ensure consistency |
+| JVM optimization | Manual tuning |  Auto-configured memory/GC |
+| Build command | `docker build -t name .` | `mvn spring-boot:build-image` |
+
+> **Note:** Both approaches are valid. The `Dockerfile` in the project root provides full control, while `build-image` offers a zero-config, optimized alternative.
+
+---
+
 
 ## ✅ Deliverables
 
@@ -959,5 +1170,5 @@ mvn spring-boot:run "-Dspring-boot.run.profiles=undersampling"
 
 **Bonus**:  
 
-- Container image (`spring-boot:build-image`).  
-- Metrics with Actuator.  
+- Container image (`spring-boot:build-image`). ✅  
+- Metrics with Actuator. ✅
