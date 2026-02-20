@@ -42,6 +42,17 @@ src/main/java/edu/eci/arsw/blueprints
 
 > This separation follows the **logical layers** pattern (model, persistence, services, controllers), facilitating extension to new technologies or data sources.
 
+## 🏗️ Architecture Diagram
+
+The following diagram illustrates the layered architecture and the request/response flow across all components:
+
+![Architecture Diagram](images/architecture-diagram.jpeg)
+
+> **Layers (top → bottom):**
+> `Controller` → `Service` → `Persistence (interface)` → `InMemory / PostgreSQL`
+>
+> The **filter** (Strategy pattern) is injected into the Service layer and applied on every read operation. Switching filters or persistence backends requires no changes to any other layer.
+
 ## 📖 Lab Activities
 
 ### 1. Familiarization with the Code Base
@@ -1157,6 +1168,20 @@ curl -s http://localhost:8080/api/v1/blueprints | jq
    - Evidence of queries in Swagger UI and evidence of messages in the database.  
    - Brief explanation of applied best practices.  
 
+## 📄 Lab Report
+
+The full lab report (PDF) is available at:
+
+📎 [`report/main.pdf`](report/main.pdf)
+
+It covers:
+- Detailed explanation of each architectural decision.
+- PostgreSQL migration walkthrough with JPA entity model.
+- REST best practices and `ApiResponse<T>` design.
+- OpenAPI/Swagger configuration and endpoint annotations.
+- Filter implementations (Identity, Redundancy, Undersampling) with examples.
+- Complete test suite breakdown (64 tests across 10 test classes).
+- Bonus: Spring Actuator metrics and container image with `spring-boot:build-image`.
 
 ## 📊 Evaluation Criteria
 
