@@ -91,7 +91,7 @@ jane/garden  → 3 points
 - Applies the injected `BlueprintsFilter` before returning blueprints to callers.
 - Is annotated `@Service`, so Spring manages its lifecycle and injects its dependencies automatically.
 
-> **Important:** Filters are only applied in `getBlueprint(author, name)` — not in `getAllBlueprints()` or `getBlueprintsByAuthor()`. Keep this in mind when extending the logic.
+> **Note:** Filters are applied in all retrieval methods: `getAllBlueprints()`, `getBlueprintsByAuthor()`, and `getBlueprint(author, name)`. See [Section 5.5](#55-filter-integration-in-the-service-layer) for details.
 
 ---
 
@@ -664,10 +664,219 @@ ORDER BY p.position;
 
 
 ### 5. *Blueprints* Filters
-- Implement filters:
-  - **RedundancyFilter**: removes consecutive duplicate points.  
-  - **UndersamplingFilter**: keeps 1 out of every 2 points.  
-- Activate filters using Spring profiles (`redundancy`, `undersampling`).  
+
+This section describes the filter system that processes blueprints before returning them to the client. Filters reduce the size or clean the data of blueprints by transforming their point lists.
+
+---
+
+#### 5.1 Solution Architecture
+
+The filter layer follows a **Strategy pattern** via a common interface:
+
+```
+filters/
+  ├── BlueprintsFilter.java        ← Interface defining the filter contract
+  ├── IdentityFilter.java          ← Default: no transformation
+  ├── RedundancyFilter.java        ← Removes consecutive duplicate points
+  └── UndersamplingFilter.java     ← Keeps 1 out of every 2 points
+```
+
+Only **one filter** is active at a time. The active filter is determined by the Spring profile. If no profile is set, `IdentityFilter` is used by default.
+
+---
+
+#### 5.2 Filter Interface
+
+```java
+public interface BlueprintsFilter {
+    Blueprint apply(Blueprint bp);
+}
+```
+
+Every filter receives a `Blueprint` and returns a **new** `Blueprint` with the transformed point list (or the same one, in the case of `IdentityFilter`).
+
+---
+
+#### 5.3 Available Filters
+
+| Filter | Class | Profile | Behavior |
+|--------|-------|---------|----------|
+| Identity | `IdentityFilter` | *(default — no profile needed)* | Returns the blueprint unchanged. Acts as the baseline. |
+| Redundancy | `RedundancyFilter` | `redundancy` | Removes **consecutive duplicate points**. If `(0,0), (0,0), (1,1)` → result is `(0,0), (1,1)`. Non-consecutive duplicates are preserved. |
+| Undersampling | `UndersamplingFilter` | `undersampling` | Keeps only **even-indexed points** (indices 0, 2, 4, …). Effectively discards 1 out of every 2 points. Blueprints with ≤ 2 points are returned unchanged. |
+
+---
+
+#### 5.4 Implementation Details
+
+##### 5.4.1 IdentityFilter
+
+```java
+@Component
+public class IdentityFilter implements BlueprintsFilter {
+    @Override
+    public Blueprint apply(Blueprint bp) { return bp; }
+}
+```
+
+- Annotated with `@Component` (no `@Profile`), so it is always available as a bean.
+- When `RedundancyFilter` or `UndersamplingFilter` are activated by their profile, Spring picks them instead because they are more specific.
+
+##### 5.4.2 RedundancyFilter
+
+```java
+@Component
+@Profile("redundancy")
+public class RedundancyFilter implements BlueprintsFilter {
+    @Override
+    public Blueprint apply(Blueprint bp) {
+        List<Point> in = bp.getPoints();
+        if (in.isEmpty()) return bp;
+        List<Point> out = new ArrayList<>();
+        Point prev = null;
+        for (Point p : in) {
+            if (prev == null || !(prev.x()==p.x() && prev.y()==p.y())) {
+                out.add(p);
+                prev = p;
+            }
+        }
+        return new Blueprint(bp.getAuthor(), bp.getName(), out);
+    }
+}
+```
+
+- Iterates through the point list sequentially, comparing each point with the previous one.
+- Only adds the point to the output if it differs from the previous one.
+- Returns a **new** `Blueprint` with the cleaned list.
+
+**Example:**
+
+```
+Input:  (0,0), (0,0), (1,1), (1,1), (2,2)
+Output: (0,0), (1,1), (2,2)             → 5 points reduced to 3
+```
+
+##### 5.4.3 UndersamplingFilter
+
+```java
+@Component
+@Profile("undersampling")
+public class UndersamplingFilter implements BlueprintsFilter {
+    @Override
+    public Blueprint apply(Blueprint bp) {
+        List<Point> in = bp.getPoints();
+        if (in.size() <= 2) return bp;
+        List<Point> out = new ArrayList<>();
+        for (int i = 0; i < in.size(); i++) {
+            if (i % 2 == 0) out.add(in.get(i));
+        }
+        return new Blueprint(bp.getAuthor(), bp.getName(), out);
+    }
+}
+```
+
+- Keeps only points at even indices (0, 2, 4, …), effectively halving the point density.
+- Blueprints with 2 or fewer points are returned unchanged to avoid losing too much data.
+
+**Example:**
+
+```
+Input:  (0,0), (1,1), (2,2), (3,3), (4,4)
+Output: (0,0), (2,2), (4,4)              → 5 points reduced to 3
+```
+
+---
+
+#### 5.5 Filter Integration in the Service Layer
+
+Filters are applied in `BlueprintsServices` across **all three retrieval methods**, ensuring consistent behavior regardless of how blueprints are queried:
+
+```java
+@Service
+public class BlueprintsServices {
+
+    private final BlueprintPersistence persistence;
+    private final BlueprintsFilter filter;
+
+    public Set<Blueprint> getAllBlueprints() {
+        return persistence.getAllBlueprints().stream()
+                .map(filter::apply)
+                .collect(Collectors.toSet());
+    }
+
+    public Set<Blueprint> getBlueprintsByAuthor(String author) throws BlueprintNotFoundException {
+        return persistence.getBlueprintsByAuthor(author).stream()
+                .map(filter::apply)
+                .collect(Collectors.toSet());
+    }
+
+    public Blueprint getBlueprint(String author, String name) throws BlueprintNotFoundException {
+        return filter.apply(persistence.getBlueprint(author, name));
+    }
+}
+```
+
+| Method | Filter Applied |
+|--------|---------------|
+| `getAllBlueprints()` |  Yes — to every blueprint in the set |
+| `getBlueprintsByAuthor()` |  Yes — to every blueprint in the set |
+| `getBlueprint()` |  Yes — to the single blueprint returned |
+
+> **Note:** `addNewBlueprint()` and `addPoint()` do **not** apply filters — they write raw data to persistence. Filters are only applied on **read** operations.
+
+---
+
+#### 5.6 Activating Filters via Spring Profiles
+
+To switch the active filter, run the application with the corresponding Spring profile:
+
+```bash
+# Default (no filter — IdentityFilter)
+mvn spring-boot:run
+
+# Redundancy filter
+mvn spring-boot:run -Dspring-boot.run.profiles=redundancy
+
+# Undersampling filter
+mvn spring-boot:run -Dspring-boot.run.profiles=undersampling
+```
+
+Profiles can also be combined with the `postgres` profile:
+
+```bash
+# PostgreSQL + Redundancy filter
+mvn spring-boot:run "-Dspring-boot.run.profiles=postgres,redundancy"
+
+# PostgreSQL + Undersampling filter
+mvn spring-boot:run "-Dspring-boot.run.profiles=postgres,undersampling"
+```
+
+---
+
+#### 5.7 Unit Tests
+
+All filters are covered in `FiltersTest.java` with the following test cases:
+
+| Test | Filter | Scenario | Expected |
+|------|--------|----------|----------|
+| `testIdentityFilter` | Identity | 3 distinct points | All 3 points returned unchanged |
+| `testRedundancyFilter` | Redundancy | 5 points with consecutive duplicates | 3 unique consecutive points |
+| `testRedundancyFilterNoConsecutiveDuplicates` | Redundancy | Non-consecutive duplicate `(0,0), (1,1), (0,0)` | All 3 points preserved (not consecutive) |
+| `testUndersamplingFilter` | Undersampling | 5 points | 3 points (indices 0, 2, 4) |
+| `testUndersamplingFilterSmallBlueprint` | Undersampling | 2 points only | Both points preserved (≤ 2 threshold) |
+
+Run the filter tests:
+
+```bash
+mvn test -Dtest=FiltersTest
+```
+
+Expected output:
+
+```
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+```
 
 
 ## ✅ Deliverables
