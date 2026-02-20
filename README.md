@@ -13,14 +13,14 @@ mvn spring-boot:run
 ```
 Test with `curl`:
 ```bash
-curl -s http://localhost:8080/blueprints | jq
-curl -s http://localhost:8080/blueprints/john | jq
-curl -s http://localhost:8080/blueprints/john/house | jq
-curl -i -X POST http://localhost:8080/blueprints -H 'Content-Type: application/json' -d '{ "author":"john","name":"kitchen","points":[{"x":1,"y":1},{"x":2,"y":2}] }'
-curl -i -X PUT  http://localhost:8080/blueprints/john/kitchen/points -H 'Content-Type: application/json' -d '{ "x":3,"y":3 }'
+curl -s http://localhost:8080/api/v1/blueprints | jq
+curl -s http://localhost:8080/api/v1/blueprints/john | jq
+curl -s http://localhost:8080/api/v1/blueprints/john/house | jq
+curl -i -X POST http://localhost:8080/api/v1/blueprints -H "Content-Type: application/json" -d "{\"author\":\"john\",\"name\":\"kitchen\",\"points\":[{\"x\":1,\"y\":1},{\"x\":2,\"y\":2}]}"
+curl -i -X PUT  http://localhost:8080/api/v1/blueprints/john/kitchen/points -H "Content-Type: application/json" -d "{\"x\":3,\"y\":3}"
 ```
 
-> If you want to activate point filters (redundancy reduction, *undersampling*, etc.), implement new classes that implement `BlueprintsFilter` and replace them with `IdentityFilter` using `@Primary` or Spring configuration.
+> To activate point filters (redundancy reduction, undersampling), run with the corresponding Spring profile. See [Section 5.6](#56-activating-filters-via-spring-profiles).
 
 Open in browser:  
 - Swagger UI: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)  
@@ -122,10 +122,10 @@ The inner record `NewBlueprintRequest` acts as the **DTO** for POST requests, va
 Filters are activated via **Spring profiles**. Only one filter bean is active at a time. To switch filters, run with:
 ```bash
 # Redundancy filter
-mvn spring-boot:run -Dspring-boot.run.profiles=redundancy
+mvn spring-boot:run "-Dspring-boot.run.profiles=redundancy"
 
 # Undersampling filter
-mvn spring-boot:run -Dspring-boot.run.profiles=undersampling
+mvn spring-boot:run "-Dspring-boot.run.profiles=undersampling"
 ```
 
 ---
@@ -713,14 +713,15 @@ Every filter receives a `Blueprint` and returns a **new** `Blueprint` with the t
 
 ```java
 @Component
+@Profile("!redundancy & !undersampling")
 public class IdentityFilter implements BlueprintsFilter {
     @Override
     public Blueprint apply(Blueprint bp) { return bp; }
 }
 ```
 
-- Annotated with `@Component` (no `@Profile`), so it is always available as a bean.
-- When `RedundancyFilter` or `UndersamplingFilter` are activated by their profile, Spring picks them instead because they are more specific.
+- Active **only** when neither `redundancy` nor `undersampling` profiles are set.
+- This avoids a bean conflict: without the `@Profile` exclusion, Spring would find two `BlueprintsFilter` beans and fail to start.
 
 ##### 5.4.2 RedundancyFilter
 
@@ -835,11 +836,13 @@ To switch the active filter, run the application with the corresponding Spring p
 mvn spring-boot:run
 
 # Redundancy filter
-mvn spring-boot:run -Dspring-boot.run.profiles=redundancy
+mvn spring-boot:run "-Dspring-boot.run.profiles=redundancy"
 
 # Undersampling filter
-mvn spring-boot:run -Dspring-boot.run.profiles=undersampling
+mvn spring-boot:run "-Dspring-boot.run.profiles=undersampling"
 ```
+
+> **Windows PowerShell**: The `-D` argument **must** be enclosed in double quotes (`"..."`), otherwise PowerShell interprets it as its own parameter and Maven fails with `Unknown lifecycle phase`.
 
 Profiles can also be combined with the `postgres` profile:
 
@@ -877,6 +880,57 @@ Expected output:
 [INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 ```
+
+---
+
+#### 5.8 Evidence
+
+---
+
+##### 5.8.1 Default Behavior (IdentityFilter — No Profile)
+
+Running without a profile uses `IdentityFilter`, which returns all points unchanged:
+
+```bash
+mvn spring-boot:run
+```
+
+**GET** `/api/v1/blueprints/john/house`:
+
+![Identity Filter Response](images/filter-identity-response.png)
+*All 4 original points returned without modification*
+
+---
+
+##### 5.8.2 RedundancyFilter Active
+
+Running with the `redundancy` profile removes consecutive duplicate points:
+
+```bash
+mvn spring-boot:run "-Dspring-boot.run.profiles=redundancy"
+```
+
+**GET** `/api/v1/blueprints/john/house`:
+
+![Redundancy Filter Response](images/filter-redundancy-response.png)
+*Consecutive duplicate points removed from the response*
+
+---
+
+##### 5.8.3 UndersamplingFilter Active
+
+Running with the `undersampling` profile keeps only even-indexed points:
+
+```bash
+mvn spring-boot:run "-Dspring-boot.run.profiles=undersampling"
+```
+
+**GET** `/api/v1/blueprints/john/house`:
+
+![Undersampling Filter Response](images/filter-undersampling-response.png)
+*Only points at indices 0, 2 are returned (4 points → 2 points)*
+
+---
 
 
 ## ✅ Deliverables
