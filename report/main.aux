@@ -1,0 +1,92 @@
+\relax 
+\providecommand \babel@aux [2]{\global \let \babel@toc \@gobbletwo }
+\@nameuse{bbl@beforestart}
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\babel@aux{english}{}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Objective}{3}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Application Architecture}{3}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Package Structure}{3}{subsection.2.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Project package structure}}{3}{table.caption.1}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{tab:packages}{{1}{3}{Project package structure}{table.caption.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Request / Response Flow}{3}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Part 1: Code Base Familiarization}{3}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Model Layer}{3}{subsection.3.1}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {1}{\ignorespaces Immutable Point record}}{3}{lstlisting.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Persistence Layer}{3}{subsection.3.2}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {2}{\ignorespaces Persistence interface contract}}{3}{lstlisting.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Sample data loaded on startup}}{3}{table.caption.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Service Layer}{3}{subsection.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Controller Layer}{4}{subsection.3.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Controller endpoints and HTTP codes}}{4}{table.caption.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Part 2: Migration to PostgreSQL}{4}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Design Decisions}{4}{subsection.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}JPA Entity Model}{4}{subsection.4.2}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3}{\ignorespaces BlueprintEntity -- bidirectional mapping}}{4}{lstlisting.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Auto-Generated Relational Model}{4}{subsection.4.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Auto-generated schema by Hibernate}}{4}{table.caption.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Domain $\leftrightarrow $ Entity Mapping}{4}{subsection.4.4}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4}{\ignorespaces toDomain -- entity to domain model}}{4}{lstlisting.4}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {5}{\ignorespaces toEntity -- domain to JPA entity}}{4}{lstlisting.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Docker Setup}{4}{subsection.4.5}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {6}{\ignorespaces Starting PostgreSQL with Docker}}{4}{lstlisting.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Database Verification}{4}{subsection.4.6}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {7}{\ignorespaces Verifying persisted blueprints}}{4}{lstlisting.7}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces PostgreSQL query confirming persisted blueprints}}{5}{figure.caption.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Blueprint and its points joined from both tables}}{5}{figure.caption.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Part 3: REST API Best Practices}{5}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Versioned Base Path}{5}{subsection.5.1}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {8}{\ignorespaces Versioned controller mapping}}{5}{lstlisting.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Uniform Response Wrapper}{5}{subsection.5.2}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {9}{\ignorespaces ApiResponse record}}{5}{lstlisting.9}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {10}{\ignorespaces Successful 200 response}}{5}{lstlisting.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}HTTP Status Code Mapping}{5}{subsection.5.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces HTTP codes used by the API}}{5}{table.caption.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Error Response Format}{5}{subsection.5.4}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {11}{\ignorespaces 404 error response}}{5}{lstlisting.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Part 4: OpenAPI / Swagger}{5}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Configuration}{5}{subsection.6.1}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {12}{\ignorespaces OpenAPI bean configuration}}{5}{lstlisting.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Endpoint Annotations}{5}{subsection.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Swagger UI Evidence}{6}{subsection.6.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Swagger UI showing all versioned endpoints}}{6}{figure.caption.8}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces GET /api/v1/blueprints -- successful response in Swagger}}{6}{figure.caption.9}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces POST -- 201 Created response with blueprint data}}{6}{figure.caption.10}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces GET non-existent blueprint -- 404 Not Found}}{6}{figure.caption.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Part 5: Blueprints Filters}{6}{section.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Design Pattern}{6}{subsection.7.1}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {13}{\ignorespaces Filter interface}}{6}{lstlisting.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Available Filters}{6}{subsection.7.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Available filters and their activation profiles}}{6}{table.caption.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}RedundancyFilter}{6}{subsection.7.3}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {14}{\ignorespaces RedundancyFilter core logic}}{6}{lstlisting.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}UndersamplingFilter}{6}{subsection.7.4}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {15}{\ignorespaces UndersamplingFilter core logic}}{6}{lstlisting.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.5}Profile-Based Activation}{6}{subsection.7.5}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {16}{\ignorespaces IdentityFilter profile guard}}{6}{lstlisting.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.6}Filter Evidence}{7}{subsection.7.6}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Identity filter: all 4 original points returned}}{7}{figure.caption.13}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Redundancy filter: consecutive duplicate points removed}}{7}{figure.caption.14}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Undersampling filter: 4 points reduced to 2 (even indices)}}{7}{figure.caption.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}Testing Strategy}{7}{section.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}Test Suite Overview}{7}{subsection.8.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Test suite breakdown}}{7}{table.caption.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Notable Test Techniques}{7}{subsection.8.2}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {17}{\ignorespaces MockMvc controller test example}}{7}{lstlisting.17}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {18}{\ignorespaces ArgumentCaptor verifies toEntity mapping}}{7}{lstlisting.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}SonarCloud Coverage}{7}{subsection.8.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Bonus Features}{7}{section.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.1}Spring Boot Actuator}{8}{subsection.9.1}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {19}{\ignorespaces Actuator properties}}{8}{lstlisting.19}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces Exposed Actuator endpoints}}{8}{table.caption.17}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.2}Container Image}{8}{subsection.9.2}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {20}{\ignorespaces Building the container image}}{8}{lstlisting.20}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {21}{\ignorespaces Image name configuration}}{8}{lstlisting.21}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {22}{\ignorespaces Running with undersampling filter}}{8}{lstlisting.22}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Dockerfile vs spring-boot:build-image}}{8}{table.caption.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {10}Conclusions}{8}{section.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.1}Lessons Learned}{8}{subsection.10.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {11}References}{8}{section.11}\protected@file@percent }
+\gdef \@abspage@last{8}
