@@ -8,6 +8,7 @@ import edu.eci.arsw.blueprints.persistence.BlueprintPersistenceException;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class BlueprintsServices {
@@ -25,11 +26,15 @@ public class BlueprintsServices {
     }
 
     public Set<Blueprint> getAllBlueprints() {
-        return persistence.getAllBlueprints();
+        return persistence.getAllBlueprints().stream()
+                .map(filter::apply)
+                .collect(Collectors.toSet());
     }
 
     public Set<Blueprint> getBlueprintsByAuthor(String author) throws BlueprintNotFoundException {
-        return persistence.getBlueprintsByAuthor(author);
+        return persistence.getBlueprintsByAuthor(author).stream()
+                .map(filter::apply)
+                .collect(Collectors.toSet());
     }
 
     public Blueprint getBlueprint(String author, String name) throws BlueprintNotFoundException {
