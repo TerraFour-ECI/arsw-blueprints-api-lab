@@ -1,0 +1,898 @@
+\documentclass[10pt,a4paper,twocolumn]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage[most]{tcolorbox}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{titlesec}
+\usepackage{microtype}
+\usepackage{parskip}
+\usepackage{array}
+\usepackage{makecell}  % for \thead
+
+% Geometry
+\geometry{
+    a4paper,
+    top=2cm, bottom=2cm,
+    left=1.5cm, right=1.5cm,
+    headsep=0.5cm, footskip=1cm
+}
+
+\setlength{\headheight}{15pt}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Lab 04 -- REST API Blueprints}
+\lhead{Software Architecture}
+\cfoot{\thepage}
+\pagenumbering{arabic}
+
+% Code listing
+\lstset{
+    basicstyle=\ttfamily\scriptsize,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!60!black}\itshape,
+    stringstyle=\color{red},
+    showstringspaces=false,
+    breaklines=true,
+    breakatwhitespace=true,
+    frame=leftline,
+    framerule=2pt,
+    rulecolor=\color{blue!30},
+    backgroundcolor=\color{gray!5},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1,
+    numbersep=8pt,
+    columns=flexible,
+    aboveskip=\medskipamount,
+    belowskip=\medskipamount,
+    xleftmargin=15pt,
+    language=Java
+}
+
+% Colors & section formatting
+\definecolor{darkblue}{RGB}{0,32,96}
+\definecolor{placeholderbg}{RGB}{230,230,230}
+
+\titleformat{\section}
+{\color{darkblue}\normalfont\large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}
+{\color{darkblue}\normalfont\normalsize\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}
+{\color{darkblue}\normalfont\small\bfseries}{\thesubsubsection}{1em}{}
+
+% Custom boxes
+\newtcolorbox{conceptbox}[1]{
+    colback=blue!5!white, colframe=blue!75!black,
+    colbacktitle=blue!80!black, coltitle=white,
+    title={\textbf{#1}}, fonttitle=\bfseries\small,
+    boxrule=0.8pt, before skip=8pt, after skip=8pt,
+    left=4pt, right=4pt, top=6pt, bottom=6pt, breakable
+}
+\newtcolorbox{resultbox}[1]{
+    colback=green!5!white, colframe=green!75!black,
+    colbacktitle=green!80!black, coltitle=white,
+    title={\textbf{#1}}, fonttitle=\bfseries\small,
+    boxrule=0.8pt, before skip=8pt, after skip=8pt,
+    left=4pt, right=4pt, top=6pt, bottom=6pt, breakable
+}
+\newtcolorbox{note}{
+    colback=yellow!10!white, colframe=orange!75!black,
+    colbacktitle=orange!80!black, coltitle=white,
+    title={\textbf{Important Note}}, fonttitle=\bfseries\small,
+    boxrule=0.8pt, before skip=8pt, after skip=8pt,
+    left=4pt, right=4pt, top=6pt, bottom=6pt, breakable
+}
+\newtcolorbox{warningbox}{
+    colback=red!5!white, colframe=red!75!black,
+    colbacktitle=red!80!black, coltitle=white,
+    title={\textbf{Key Design Decision}}, fonttitle=\bfseries\small,
+    boxrule=0.8pt, before skip=8pt, after skip=8pt,
+    left=4pt, right=4pt, top=6pt, bottom=6pt, breakable
+}
+
+% Image placeholder command
+\newcommand{\imgplaceholder}[2]{%
+    \begin{tcolorbox}[
+        colback=placeholderbg,
+        colframe=gray!60,
+        height=#1,
+        valign=center,
+        halign=center,
+        fontupper=\small\ttfamily\color{gray!70},
+        boxrule=0.5pt,
+        left=2pt, right=2pt
+    ]
+        #2
+    \end{tcolorbox}%
+}
+
+\setlist[itemize]{leftmargin=15pt, itemsep=2pt, parsep=0pt, topsep=5pt}
+\setlist[enumerate]{leftmargin=15pt, itemsep=2pt, parsep=0pt, topsep=5pt}
+\captionsetup{font=small, labelfont=bf, format=hang, indention=0pt, margin=10pt}
+\hypersetup{colorlinks=true, linkcolor=darkblue, urlcolor=darkblue,
+            citecolor=darkblue, pdfborder={0 0 0}}
+
+% ─────────────────────────── TITLE PAGE ────────────────────────────────────
+\title{\vspace{-1cm}
+    \begin{center}
+        \includegraphics[width=0.25\textwidth]{media/university_logo.png}
+    \end{center}
+    \vspace{1.5cm}
+    \textbf{\Large Software Architecture Laboratory}\\
+    \vspace{1cm}
+    \textbf{\huge Laboratory No. 4}\\
+    \textbf{\huge REST API -- Blueprints}\\
+    \vspace{1.5cm}
+    \large Blueprints Java 21 / Spring Boot 3.3.x
+}
+
+\author{
+    \vspace{2cm}
+    \textbf{Students:}\\[0.05cm]
+    Andersson David S\'{a}nchez M\'{e}ndez\\[0.3cm]
+    Cristian Santiago Pedraza Rodr\'{i}guez\\[0.3cm]
+    Elizabeth Correa Su\'{a}rez\\[0.3cm]
+    Juan Sebastian Ortega Mu\~{n}oz\\[1.5cm]
+    \textbf{Instructor:} Professor Javier Ivan Toquica Barrera\\[0.5cm]
+    \textbf{Course:} Software Architecture (ARSW)\\[0.3cm]
+    \textbf{Institution:} Escuela Colombiana de Ingenier\'{i}a Julio Garavito\\[2cm]
+}
+
+\date{February 2026}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\begin{document}
+
+\onecolumn
+\maketitle
+\thispagestyle{empty}
+\newpage
+
+\tableofcontents
+\newpage
+\twocolumn
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Objective}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+This laboratory focuses on designing and implementing a production-quality REST API using Java 21 and Spring Boot 3.3.x, following layered architecture principles. The \textit{Blueprints} system manages geometric drawings identified by author and name, each composed of a list of 2D points.
+
+The specific goals include:
+
+\begin{itemize}
+    \item \textbf{Layered Architecture}: Model, Persistence, Service, and Controller separation.
+    \item \textbf{PostgreSQL Migration}: Replace in-memory storage with a real relational database via JPA/Hibernate.
+    \item \textbf{REST Best Practices}: Versioned paths (\texttt{/api/v1/}), correct HTTP codes, and uniform \texttt{ApiResponse<T>} wrappers.
+    \item \textbf{OpenAPI/Swagger}: Auto-generated, annotated interactive documentation.
+    \item \textbf{Configurable Filters}: Strategy pattern via Spring profiles (redundancy, undersampling).
+    \item \textbf{Bonus}: Container image via \texttt{spring-boot:build-image} and production metrics with Spring Actuator.
+\end{itemize}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Application Architecture}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\subsection{Package Structure}
+
+The project follows a strict \textbf{logical layers} pattern, ensuring that each layer depends only on the one below it:
+
+\begin{table}[H]
+    \centering
+    \small
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{>{\ttfamily\footnotesize}p{0.38\columnwidth} p{0.48\columnwidth}}
+        \toprule
+        \normalfont\textbf{Package} & \textbf{Responsibility} \\
+        \midrule
+        model               & Domain entities: Blueprint, Point \\
+        persistence         & Interface + InMemory/Postgres impls \\
+        persistence.entity  & JPA entities: BlueprintEntity, PointEntity \\
+        persistence.jpa     & Spring Data JPA repository \\
+        services            & Business logic, filter orchestration \\
+        filters             & Strategy: Identity, Redundancy, Undersampling \\
+        controllers         & REST endpoints, DTO, ApiResponse \\
+        config              & OpenAPI/Swagger configuration \\
+        \bottomrule
+    \end{tabular}
+    \caption{Project package structure}
+    \label{tab:packages}
+\end{table}
+
+\subsection{Request / Response Flow}
+
+Every API call traverses the following pipeline:
+
+\begin{enumerate}
+    \item \textbf{Controller} validates the HTTP request and maps it to a service call.
+    \item \textbf{Service} applies the active filter and delegates to persistence.
+    \item \textbf{Persistence} reads or writes the data store (in-memory or PostgreSQL).
+    \item The result is wrapped in \texttt{ApiResponse<T>} and returned with the appropriate HTTP status.
+\end{enumerate}
+
+\begin{warningbox}
+    Filters are applied on \textbf{all read operations} (\texttt{getAll}, \texttt{getByAuthor}, \texttt{getByName}). Write operations (\texttt{save}, \texttt{addPoint}) store raw data without filtering.
+\end{warningbox}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Part 1: Code Base Familiarization}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\subsection{Model Layer}
+
+\begin{itemize}
+    \item \textbf{Blueprint}: Identified uniquely by \texttt{author + name}. Exposes an unmodifiable view of its point list. Equality and \texttt{hashCode} are based only on author and name.
+    \item \textbf{Point}: An immutable Java \texttt{record} holding \texttt{(int x, int y)}.
+\end{itemize}
+
+\begin{lstlisting}[caption={Immutable Point record}]
+public record Point(
+    @Schema(description = "X coordinate") int x,
+    @Schema(description = "Y coordinate") int y
+) { }
+\end{lstlisting}
+
+\subsection{Persistence Layer}
+
+\texttt{BlueprintPersistence} defines the storage contract:
+
+\begin{lstlisting}[caption={Persistence interface contract}]
+public interface BlueprintPersistence {
+    void saveBlueprint(Blueprint bp)
+        throws BlueprintPersistenceException;
+    Blueprint getBlueprint(String author, String name)
+        throws BlueprintNotFoundException;
+    Set<Blueprint> getBlueprintsByAuthor(String author)
+        throws BlueprintNotFoundException;
+    Set<Blueprint> getAllBlueprints();
+    void addPoint(String author, String name,
+        int x, int y) throws BlueprintNotFoundException;
+}
+\end{lstlisting}
+
+\texttt{InMemoryBlueprintPersistence} implements this interface using a \texttt{ConcurrentHashMap} with composite key \texttt{"author:name"}. Pre-loaded sample data:
+
+\begin{table}[H]
+    \centering
+    \small
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Author} & \textbf{Name} & \textbf{Points} \\
+        \midrule
+        john & house  & 4 \\
+        john & garage & 3 \\
+        jane & garden & 3 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Sample data loaded on startup}
+\end{table}
+
+\subsection{Service Layer}
+
+\texttt{BlueprintsServices} acts as the orchestration layer. It injects both \texttt{BlueprintPersistence} and \texttt{BlueprintsFilter} via constructor injection, ensuring loose coupling and testability.
+
+\subsection{Controller Layer}
+
+\texttt{BlueprintsAPIController} maps all HTTP endpoints:
+
+\begin{table}[H]
+    \centering
+    \small
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{llc}
+        \toprule
+        \textbf{Method} & \textbf{Path} & \textbf{Code} \\
+        \midrule
+        GET  & \texttt{/api/v1/blueprints}          & 200      \\
+        GET  & \texttt{.../\{author\}}               & 200/404  \\
+        GET  & \texttt{.../\{author\}/\{name\}}      & 200/404  \\
+        POST & \texttt{/api/v1/blueprints}           & 201/400/403 \\
+        PUT  & \texttt{.../\{author\}/\{name\}/points} & 202/404 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Controller endpoints and HTTP codes}
+\end{table}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Part 2: Migration to PostgreSQL}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\subsection{Design Decisions}
+
+The migration was implemented without modifying any existing class. Two key Spring annotations drive the behavior:
+
+\begin{itemize}
+    \item \texttt{@Profile("postgres")}: The new implementation only loads when this profile is active.
+    \item \texttt{@Primary}: When the profile is active, Spring selects \texttt{PostgresBlueprintPersistence} over \texttt{InMemoryBlueprintPersistence}.
+\end{itemize}
+
+\begin{conceptbox}{Zero-Impact Migration}
+    The full layered stack (Service, Controller, Filters) required \textbf{zero changes}. Only new classes were added in the persistence layer, honoring the Open/Closed Principle.
+\end{conceptbox}
+
+\subsection{JPA Entity Model}
+
+Two JPA entities map to the relational schema:
+
+\begin{lstlisting}[caption={BlueprintEntity -- bidirectional mapping}]
+@Entity
+@Table(name = "blueprints",
+  uniqueConstraints = @UniqueConstraint(
+    columnNames = {"author","name"}))
+public class BlueprintEntity {
+    @OneToMany(mappedBy = "blueprint",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true,
+        fetch = FetchType.EAGER)
+    @OrderColumn(name = "position")
+    private List<PointEntity> points = new ArrayList<>();
+    ...
+}
+\end{lstlisting}
+
+The \texttt{@OrderColumn} preserves point insertion order in the database, which is critical for filters like \texttt{UndersamplingFilter} that rely on positional indices.
+
+\subsection{Auto-Generated Relational Model}
+
+\begin{table}[H]
+    \centering
+    \small
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{>{\ttfamily}lll}
+        \toprule
+        \multicolumn{3}{c}{\textbf{Table: blueprints}} \\
+        \midrule
+        id     & BIGINT  & PK, auto-increment \\
+        author & VARCHAR & NOT NULL \\
+        name   & VARCHAR & NOT NULL \\
+        \multicolumn{3}{l}{\footnotesize UNIQUE(author, name)} \\
+        \bottomrule
+    \end{tabular}
+
+    \vspace{6pt}
+
+    \begin{tabular}{>{\ttfamily}lll}
+        \toprule
+        \multicolumn{3}{c}{\textbf{Table: points}} \\
+        \midrule
+        id           & BIGINT & PK, auto-increment \\
+        x            & INT    & NOT NULL \\
+        y            & INT    & NOT NULL \\
+        position     & INT    & Order in blueprint \\
+        blueprint\_id & BIGINT & FK $\to$ blueprints(id) \\
+        \bottomrule
+    \end{tabular}
+    \caption{Auto-generated schema by Hibernate}
+\end{table}
+
+\subsection{Domain $\leftrightarrow$ Entity Mapping}
+
+\begin{lstlisting}[caption={toDomain -- entity to domain model}]
+private Blueprint toDomain(BlueprintEntity e) {
+    List<Point> pts = e.getPoints().stream()
+        .map(p -> new Point(p.getX(), p.getY()))
+        .collect(Collectors.toList());
+    return new Blueprint(e.getAuthor(), e.getName(), pts);
+}
+\end{lstlisting}
+
+\begin{lstlisting}[caption={toEntity -- domain to JPA entity}]
+private BlueprintEntity toEntity(Blueprint bp) {
+    BlueprintEntity e = new BlueprintEntity(
+        bp.getAuthor(), bp.getName());
+    bp.getPoints().forEach(p ->
+        e.addPoint(new PointEntity(p.x(), p.y())));
+    return e;
+}
+\end{lstlisting}
+
+\subsection{Docker Setup}
+
+\begin{lstlisting}[language=bash, caption={Starting PostgreSQL with Docker}]
+docker run --name blueprints-db \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=blueprints \
+  -p 5432:5432 -d postgres:16
+\end{lstlisting}
+
+\begin{note}
+    On Windows, port 5432 may already be in use by a local PostgreSQL installation. If so, use \texttt{-p 5433:5432} and update the datasource URL in \texttt{application-postgres.properties} accordingly.
+\end{note}
+
+\subsection{Database Verification}
+
+After running with \texttt{-Dspring-boot.run.profiles=postgres}, Hibernate auto-creates the schema. The data can be verified directly:
+
+\begin{lstlisting}[language=SQL, caption={Verifying persisted blueprints}]
+SELECT b.author, b.name, p.x, p.y, p.position
+FROM blueprints b
+JOIN points p ON p.blueprint_id = b.id
+ORDER BY b.author, b.name, p.position;
+\end{lstlisting}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{../images/db-all-blueprints.png}{%
+        \includegraphics[width=0.45\textwidth]{../images/db-all-blueprints.png}%
+    }{%
+        \imgplaceholder{2.5cm}{db-all-blueprints.png}%
+    }
+    \caption{PostgreSQL query confirming persisted blueprints}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{../images/db-specific.png}{%
+        \includegraphics[width=0.45\textwidth]{../images/db-specific.png}%
+    }{%
+        \imgplaceholder{2.5cm}{db-specific.png}%
+    }
+    \caption{Blueprint and its points joined from both tables}
+\end{figure}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Part 3: REST API Best Practices}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\subsection{Versioned Base Path}
+
+All endpoints were moved from \texttt{/blueprints} to \texttt{/api/v1/blueprints}, enabling forward compatibility when the API evolves:
+
+\begin{lstlisting}[caption={Versioned controller mapping}]
+@RestController
+@RequestMapping("/api/v1/blueprints")
+public class BlueprintsAPIController { ... }
+\end{lstlisting}
+
+\subsection{Uniform Response Wrapper}
+
+Every endpoint returns an \texttt{ApiResponse<T>}, a generic record that standardizes the response shape across the entire API:
+
+\begin{lstlisting}[caption={ApiResponse record}]
+public record ApiResponse<T>(
+    int code,
+    String message,
+    T data
+) {}
+\end{lstlisting}
+
+\textbf{Example response} for \texttt{GET /api/v1/blueprints/john/house}:
+
+\begin{lstlisting}[language={},caption={Successful 200 response}]
+{
+  "code": 200,
+  "message": "execute ok",
+  "data": {
+    "author": "john",
+    "name": "house",
+    "points": [
+      {"x":0,"y":0}, {"x":10,"y":0},
+      {"x":10,"y":10}, {"x":0,"y":10}
+    ]
+  }
+}
+\end{lstlisting}
+
+\subsection{HTTP Status Code Mapping}
+
+\begin{table}[H]
+    \centering
+    \small
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{cl}
+        \toprule
+        \textbf{Code} & \textbf{Scenario} \\
+        \midrule
+        200 & Successful read \\
+        201 & Blueprint created \\
+        202 & Point added \\
+        400 & Validation failure (missing fields) \\
+        403 & Duplicate blueprint \\
+        404 & Author or blueprint not found \\
+        \bottomrule
+    \end{tabular}
+    \caption{HTTP codes used by the API}
+\end{table}
+
+\subsection{Error Response Format}
+
+Errors also follow the \texttt{ApiResponse<T>} structure with \texttt{data: null}:
+
+\begin{lstlisting}[language={},caption={404 error response}]
+{
+  "code": 404,
+  "message": "Blueprint not found: john/xyz",
+  "data": null
+}
+\end{lstlisting}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Part 4: OpenAPI / Swagger}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\subsection{Configuration}
+
+The \texttt{springdoc-openapi-starter-webmvc-ui} dependency (v2.6.0) was added to \texttt{pom.xml}. \texttt{OpenApiConfig.java} customizes the metadata:
+
+\begin{lstlisting}[caption={OpenAPI bean configuration}]
+@Bean
+public OpenAPI api() {
+    return new OpenAPI()
+        .info(new Info()
+            .title("ARSW Blueprints API")
+            .version("v1")
+            .description("REST API for blueprint management"))
+        .servers(List.of(new Server()
+            .url("http://localhost:8080")
+            .description("Development Server")));
+}
+\end{lstlisting}
+
+\subsection{Endpoint Annotations}
+
+All controller methods are annotated with:
+\begin{itemize}
+    \item \texttt{@Operation}: Summary and description.
+    \item \texttt{@ApiResponses}: All possible response codes.
+    \item \texttt{@Parameter}: Path variable descriptions and examples.
+    \item \texttt{@Schema}: Request/response body examples.
+\end{itemize}
+
+\subsection{Swagger UI Evidence}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{../images/swagger.png}{%
+        \includegraphics[width=0.45\textwidth]{../images/swagger.png}%
+    }{%
+        \imgplaceholder{3cm}{swagger.png}%
+    }
+    \caption{Swagger UI showing all versioned endpoints}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{../images/swagger-get-all-response.png}{%
+        \includegraphics[width=0.45\textwidth]{../images/swagger-get-all-response.png}%
+    }{%
+        \imgplaceholder{3cm}{swagger-get-all-response.png}%
+    }
+    \caption{GET /api/v1/blueprints -- successful response in Swagger}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{../images/swagger-post-response.png}{%
+        \includegraphics[width=0.45\textwidth]{../images/swagger-post-response.png}%
+    }{%
+        \imgplaceholder{3cm}{swagger-post-response.png}%
+    }
+    \caption{POST -- 201 Created response with blueprint data}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{../images/swagger-404.png}{%
+        \includegraphics[width=0.45\textwidth]{../images/swagger-404.png}%
+    }{%
+        \imgplaceholder{3cm}{swagger-404.png}%
+    }
+    \caption{GET non-existent blueprint -- 404 Not Found}
+\end{figure}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Part 5: Blueprints Filters}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\subsection{Design Pattern}
+
+Filters follow the \textbf{Strategy pattern}: all implement \texttt{BlueprintsFilter}, and Spring injects the active one based on the active profile. This avoids any \texttt{if/switch} logic in the service layer.
+
+\begin{lstlisting}[caption={Filter interface}]
+public interface BlueprintsFilter {
+    Blueprint apply(Blueprint bp);
+}
+\end{lstlisting}
+
+\subsection{Available Filters}
+
+\begin{table}[H]
+    \centering
+    \small
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{>{\ttfamily\footnotesize}l >{\footnotesize\ttfamily}l p{0.3\columnwidth}}
+        \toprule
+        \normalfont\textbf{Filter} & \normalfont\textbf{Profile} & \textbf{Behavior} \\
+        \midrule
+        IdentityFilter     & (default)    & Returns blueprint unchanged \\
+        RedundancyFilter   & redundancy   & Removes consecutive duplicates \\
+        UndersamplingFilter & undersampling & Keeps even-indexed points \\
+        \bottomrule
+    \end{tabular}
+    \caption{Available filters and their activation profiles}
+\end{table}
+
+\subsection{RedundancyFilter}
+
+Iterates the point list sequentially and discards any point equal to its predecessor:
+
+\begin{lstlisting}[caption={RedundancyFilter core logic}]
+Point prev = null;
+for (Point p : in) {
+    if (prev == null ||
+        !(prev.x()==p.x() && prev.y()==p.y())) {
+        out.add(p);
+        prev = p;
+    }
+}
+\end{lstlisting}
+
+\textbf{Example:} \texttt{(0,0),(0,0),(1,1),(1,1),(2,2)} $\to$ \texttt{(0,0),(1,1),(2,2)}
+
+\subsection{UndersamplingFilter}
+
+Keeps only points at even indices (0, 2, 4, \ldots). Blueprints with $\leq 2$ points are returned unchanged:
+
+\begin{lstlisting}[caption={UndersamplingFilter core logic}]
+for (int i = 0; i < in.size(); i++) {
+    if (i % 2 == 0) out.add(in.get(i));
+}
+\end{lstlisting}
+
+\textbf{Example:} \texttt{(0,0),(1,1),(2,2),(3,3),(4,4)} $\to$ \texttt{(0,0),(2,2),(4,4)}
+
+\subsection{Profile-Based Activation}
+
+The \texttt{IdentityFilter} uses a negated profile expression to avoid bean conflicts:
+
+\begin{lstlisting}[caption={IdentityFilter profile guard}]
+@Component
+@Profile("!redundancy & !undersampling")
+public class IdentityFilter implements BlueprintsFilter {
+    @Override
+    public Blueprint apply(Blueprint bp) { return bp; }
+}
+\end{lstlisting}
+
+\subsection{Filter Evidence}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{../images/filter-identity-response.png}{%
+        \includegraphics[width=0.45\textwidth]{../images/filter-identity-response.png}%
+    }{%
+        \imgplaceholder{3cm}{filter-identity-response.png}%
+    }
+    \caption{Identity filter: all 4 original points returned}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{../images/filter-redundancy-response.png}{%
+        \includegraphics[width=0.45\textwidth]{../images/filter-redundancy-response.png}%
+    }{%
+        \imgplaceholder{3cm}{filter-redundancy-response.png}%
+    }
+    \caption{Redundancy filter: consecutive duplicate points removed}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \IfFileExists{../images/filter-undersampling-response.png}{%
+        \includegraphics[width=0.45\textwidth]{../images/filter-undersampling-response.png}%
+    }{%
+        \imgplaceholder{3cm}{filter-undersampling-response.png}%
+    }
+    \caption{Undersampling filter: 4 points reduced to 2 (even indices)}
+\end{figure}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Testing Strategy}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\subsection{Test Suite Overview}
+
+\begin{table}[H]
+    \centering
+    \small
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{p{0.55\columnwidth} lc}
+        \toprule
+        \textbf{Test Class} & \textbf{Layer} & \textbf{\#} \\
+        \midrule
+        BlueprintsSmokeTest              & Context    &  1 \\
+        BlueprintModelTests              & Model      &  7 \\
+        BlueprintPersistenceTests        & InMemory   &  8 \\
+        BlueprintServiceTests            & Service    &  9 \\
+        FiltersTest                      & Filters    &  5 \\
+        BlueprintControllerTests         & Controller &  9 \\
+        OpenApiConfigTest                & Config     &  2 \\
+        BlueprintEntityTest              & JPA Entity &  4 \\
+        PointEntityTest                  & JPA Entity &  4 \\
+        PostgresBlueprintPersistenceTest & Postgres   & 15 \\
+        \midrule
+        \multicolumn{2}{l}{\textbf{Total}} & \textbf{64} \\
+        \bottomrule
+    \end{tabular}
+    \caption{Test suite breakdown}
+\end{table}
+
+\subsection{Notable Test Techniques}
+
+\textbf{MockMvc for Controller Tests} -- Loads the full Spring context without a real HTTP server, verifying JSON paths and HTTP status codes:
+
+\begin{lstlisting}[caption={MockMvc controller test example}]
+@Test
+void testGetBlueprint() throws Exception {
+    mockMvc.perform(get("/api/v1/blueprints/john/house"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.code").value(200))
+        .andExpect(jsonPath("$.data.author").value("john"));
+}
+\end{lstlisting}
+
+\textbf{Mockito for PostgresPersistence} -- Uses \texttt{@Mock} on \texttt{BlueprintJpaRepository} to test the full mapping logic without a database:
+
+\begin{lstlisting}[caption={ArgumentCaptor verifies toEntity mapping}]
+var captor = ArgumentCaptor.forClass(
+    BlueprintEntity.class);
+verify(repo).save(captor.capture());
+BlueprintEntity saved = captor.getValue();
+assertEquals(10, saved.getPoints().get(0).getX());
+\end{lstlisting}
+
+\subsection{SonarCloud Coverage}
+
+JaCoCo was configured without exclusions so that SonarCloud receives coverage data for all layers including JPA entities and the Postgres implementation. Key covered areas:
+
+\begin{itemize}
+    \item All 5 \texttt{BlueprintPersistence} methods in Postgres impl.
+    \item \texttt{toDomain} and \texttt{toEntity} private mapping helpers.
+    \item All getters/setters in \texttt{BlueprintEntity} and \texttt{PointEntity}.
+    \item \texttt{OpenApiConfig.api()} bean creation and server configuration.
+\end{itemize}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Bonus Features}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\subsection{Spring Boot Actuator}
+
+Production-ready metrics and health endpoints were enabled by adding \texttt{spring-boot-starter-actuator} and configuring:
+
+\begin{lstlisting}[language={},caption={Actuator properties}]
+management.endpoints.web.exposure.include=
+    health,info,metrics,env
+management.endpoint.health.show-details=always
+info.app.name=ARSW Blueprints API
+info.app.version=1.0.0
+\end{lstlisting}
+
+Available endpoints at runtime:
+
+\begin{table}[H]
+    \centering
+    \small
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{ll}
+        \toprule
+        \textbf{Endpoint} & \textbf{URL} \\
+        \midrule
+        Health  & \texttt{/actuator/health} \\
+        Info    & \texttt{/actuator/info} \\
+        Metrics & \texttt{/actuator/metrics} \\
+        Env     & \texttt{/actuator/env} \\
+        \bottomrule
+    \end{tabular}
+    \caption{Exposed Actuator endpoints}
+\end{table}
+
+\subsection{Container Image}
+
+Spring Boot's built-in Cloud Native Buildpacks support was used to generate an OCI image without a manual Dockerfile:
+
+\begin{lstlisting}[language=bash, caption={Building the container image}]
+mvn spring-boot:build-image -DskipTests
+\end{lstlisting}
+
+The plugin was configured in \texttt{pom.xml}:
+
+\begin{lstlisting}[language=xml, caption={Image name configuration}]
+<plugin>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-maven-plugin</artifactId>
+  <configuration>
+    <image>
+      <name>arsw-blueprints-api:${project.version}</name>
+    </image>
+  </configuration>
+</plugin>
+\end{lstlisting}
+
+Running the container with a specific profile:
+
+\begin{lstlisting}[language=bash, caption={Running with undersampling filter}]
+docker run -p 8080:8080 \
+  -e SPRING_PROFILES_ACTIVE=undersampling \
+  arsw-blueprints-api:1.0.0
+\end{lstlisting}
+
+\begin{table}[H]
+    \centering
+    \small
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{lcc}
+        \toprule
+        \textbf{Aspect} & \textbf{Dockerfile} & \textbf{build-image} \\
+        \midrule
+        Requires Dockerfile & Yes & No \\
+        Layered image       & Manual & Automatic \\
+        JVM optimization    & Manual & Auto-configured \\
+        \bottomrule
+    \end{tabular}
+    \caption{Dockerfile vs spring-boot:build-image}
+\end{table}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{Conclusions}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\begin{resultbox}{Key Findings}
+\begin{enumerate}
+    \item \textbf{Layered Architecture Pays Off}: The persistence migration required zero changes to the service and controller layers, demonstrating the value of interface-based design.
+    
+    \item \textbf{Spring Profiles for Environment Switching}: A single \texttt{@Profile} annotation switches the entire persistence stack cleanly, eliminating configuration conditionals in business code.
+    
+    \item \textbf{Strategy Pattern for Extensibility}: Adding a new filter requires only a new class implementing \texttt{BlueprintsFilter}, with no changes to existing code.
+    
+    \item \textbf{Uniform Responses Improve API Consistency}: \texttt{ApiResponse<T>} ensures every endpoint — success or error — shares the same JSON contract, simplifying client-side handling.
+    
+    \item \textbf{OpenAPI as Living Documentation}: Annotating endpoints with \texttt{@Operation} and \texttt{@ApiResponse} generates documentation that is always in sync with the code.
+    
+    \item \textbf{Testability by Design}: Constructor injection and interface-based persistence allowed Mockito to fully test the Postgres implementation without a real database.
+\end{enumerate}
+\end{resultbox}
+
+\subsection{Lessons Learned}
+
+\begin{itemize}
+    \item \texttt{@Profile("!a \& !b")} is the correct way to make a default bean that yields to alternatives.
+    \item \texttt{@OrderColumn} is essential when point order matters downstream.
+    \item JaCoCo exclusions hide real coverage gaps from SonarCloud — prefer writing tests over adding exclusions.
+    \item \texttt{spring.autoconfigure.exclude} must be cleared in the postgres profile or JPA won't start.
+\end{itemize}
+
+% ═══════════════════════════════════════════════════════════════════════════════
+\section{References}
+% ═══════════════════════════════════════════════════════════════════════════════
+
+\begin{enumerate}
+    \item Spring Boot Reference Documentation (v3.3.x). \url{https://docs.spring.io/spring-boot/docs/3.3.x/reference/html/}
+
+    \item Springdoc OpenAPI Documentation. \url{https://springdoc.org/}
+
+    \item JaCoCo Java Code Coverage Library. \url{https://www.jacoco.org/jacoco/trunk/doc/}
+
+    \item SonarCloud Documentation. \url{https://docs.sonarcloud.io/}
+
+    \item Martin, R.C. (2017). \textit{Clean Architecture}. Prentice Hall.
+
+    \item Fowler, M. (2002). \textit{Patterns of Enterprise Application Architecture}. Addison-Wesley.
+\end{enumerate}
+
+\end{document}
