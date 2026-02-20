@@ -338,25 +338,334 @@ docker rm -f blueprints-db
 ```
   
 ### 3. REST API Best Practices
-- Change the base path of controllers to `/api/v1/blueprints`.  
-- Use correct **HTTP codes**:  
-  - `200 OK` (successful queries).  
-  - `201 Created` (creation).  
-  - `202 Accepted` (updates).  
-  - `400 Bad Request` (invalid data).  
-  - `404 Not Found` (nonexistent resource).  
-- Implement a generic uniform response class:
-  ```java
-  public record ApiResponse<T>(int code, String message, T data) {}
-  ```
-  JSON example:
-  ```json
-  {
-    "code": 200,
-    "message": "execute ok",
-    "data": { "author": "john", "name": "house", "points": [...] }
+
+This section describes the best practices applied to the REST API, including versioning, uniform responses, correct HTTP status codes, and global error handling.
+
+---
+
+#### 3.1 Solution Architecture
+
+The following components were added or modified:
+
+```
+controllers/
+  ├── BlueprintsAPIController.java   ← Updated: base path + ApiResponse wrapping
+  ├── GlobalExceptionHandler.java    ← New: handles 400/500 globally
+  └── dto/
+       └── ApiResponse.java          ← New: generic uniform response record
+```
+
+---
+
+#### 3.2 Base Path Versioning
+
+The controller base path was changed from `/blueprints` to `/api/v1/blueprints`:
+
+```java
+@RestController
+@RequestMapping("/api/v1/blueprints")
+public class BlueprintsAPIController { ... }
+```
+
+This follows the REST versioning best practice of embedding the API version in the URL, making it easy to introduce breaking changes in a future `/api/v2/...` without affecting existing clients.
+
+---
+
+#### 3.3 Generic Uniform Response — `ApiResponse<T>`
+
+All endpoints return a consistent JSON envelope:
+
+```java
+public record ApiResponse<T>(int code, String message, T data) {}
+```
+
+**Example response:**
+```json
+{
+  "code": 200,
+  "message": "execute ok",
+  "data": {
+    "author": "john",
+    "name": "house",
+    "points": [
+      { "x": 0, "y": 0 },
+      { "x": 10, "y": 0 },
+      { "x": 10, "y": 10 },
+      { "x": 0, "y": 10 }
+    ]
   }
-  ```
+}
+```
+
+This makes client-side error handling predictable — consumers always parse the same structure regardless of the endpoint.
+
+---
+
+#### 3.4 HTTP Status Codes Applied
+
+| Scenario | HTTP Code | Endpoint |
+|----------|-----------|----------|
+| Successful query | `200 OK` | All GET endpoints |
+| Blueprint created | `201 Created` | `POST /api/v1/blueprints` |
+| Point added | `202 Accepted` | `PUT /api/v1/blueprints/{author}/{bpname}/points` |
+| Invalid request body | `400 Bad Request` | `POST /api/v1/blueprints` (missing/blank fields) |
+| Resource not found | `404 Not Found` | GET/PUT with nonexistent author or blueprint |
+| Duplicate blueprint | `403 Forbidden` | `POST /api/v1/blueprints` (already exists) |
+
+---
+
+#### 3.5 Global Exception Handler
+
+A `@RestControllerAdvice` class handles validation errors and unexpected exceptions uniformly:
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<?>> handleValidation(MethodArgumentNotValidException ex) {
+        String errors = ex.getBindingResult().getFieldErrors().stream()
+                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+                .collect(Collectors.joining(", "));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiResponse<>(400, "validation failed: " + errors, null));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<?>> handleGeneric(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(500, "internal server error: " + ex.getMessage(), null));
+    }
+}
+```
+
+---
+
+#### 3.6 Endpoint Summary
+
+| Method | Path | Description | Success Code |
+|--------|------|-------------|-------------|
+| `GET` | `/api/v1/blueprints` | List all blueprints | `200 OK` |
+| `GET` | `/api/v1/blueprints/{author}` | Blueprints by author | `200 OK` |
+| `GET` | `/api/v1/blueprints/{author}/{bpname}` | Single blueprint | `200 OK` |
+| `POST` | `/api/v1/blueprints` | Create new blueprint | `201 Created` |
+| `PUT` | `/api/v1/blueprints/{author}/{bpname}/points` | Add a point | `202 Accepted` |
+
+---
+
+#### 3.7 Testing with Postman
+
+##### 3.7.1 GET `/api/v1/blueprints` — Get All Blueprints
+
+**Request:**
+```
+GET http://localhost:8080/api/v1/blueprints
+```
+
+![GET All Blueprints](images/postman-get-all.png)
+*200 OK — returns all blueprints wrapped in ApiResponse*
+
+**Response:**
+```json
+{
+  "code": 200,
+  "message": "execute ok",
+  "data": [
+    { "author": "john", "name": "house", "points": [...] },
+    { "author": "john", "name": "garage", "points": [...] },
+    { "author": "jane", "name": "garden", "points": [...] }
+  ]
+}
+```
+
+---
+
+##### 3.7.2 GET `/api/v1/blueprints/{author}` — Get Blueprints by Author
+
+**Request:**
+```
+GET http://localhost:8080/api/v1/blueprints/john
+```
+
+![GET By Author](images/postman-get-by-author.png)
+*200 OK — returns all blueprints for "john"*
+
+**Response:**
+```json
+{
+  "code": 200,
+  "message": "execute ok",
+  "data": [
+    { "author": "john", "name": "house", "points": [...] },
+    { "author": "john", "name": "garage", "points": [...] }
+  ]
+}
+```
+
+---
+
+##### 3.7.3 GET `/api/v1/blueprints/{author}/{bpname}` — Get Specific Blueprint
+
+**Request:**
+```
+GET http://localhost:8080/api/v1/blueprints/john/house
+```
+
+![GET Specific Blueprint](images/postman-get-specific.png)
+*200 OK — returns the specific blueprint with its points*
+
+**Response:**
+```json
+{
+  "code": 200,
+  "message": "execute ok",
+  "data": {
+    "author": "john",
+    "name": "house",
+    "points": [
+      { "x": 0,  "y": 0  },
+      { "x": 10, "y": 0  },
+      { "x": 10, "y": 10 },
+      { "x": 0,  "y": 10 }
+    ]
+  }
+}
+```
+
+---
+
+##### 3.7.4 POST `/api/v1/blueprints` — Create New Blueprint
+
+**Request:**
+```
+POST http://localhost:8080/api/v1/blueprints
+Content-Type: application/json
+```
+
+**Body:**
+```json
+{
+  "author": "alice",
+  "name": "office",
+  "points": [
+    { "x": 0,  "y": 0  },
+    { "x": 50, "y": 0  },
+    { "x": 50, "y": 50 },
+    { "x": 0,  "y": 50 }
+  ]
+}
+```
+
+![POST Create Blueprint](images/postman-post-create.png)
+*201 Created — new blueprint registered*
+
+**Response:**
+```json
+{
+  "code": 201,
+  "message": "blueprint created",
+  "data": {
+    "author": "alice",
+    "name": "office",
+    "points": [...]
+  }
+}
+```
+
+---
+
+##### 3.7.5 PUT `/api/v1/blueprints/{author}/{bpname}/points` — Add Point
+
+**Request:**
+```
+PUT http://localhost:8080/api/v1/blueprints/alice/office/points
+Content-Type: application/json
+```
+
+**Body:**
+```json
+{ "x": 25, "y": 25 }
+```
+
+![PUT Add Point](images/postman-put-point.png)
+*202 Accepted — point successfully added*
+
+**Response:**
+```json
+{
+  "code": 202,
+  "message": "point added",
+  "data": null
+}
+```
+
+---
+
+#### 3.8 Error Handling Evidence
+
+##### 3.8.1 404 — Blueprint Not Found
+
+**Request:**
+```
+GET http://localhost:8080/api/v1/blueprints/john/nonexistent
+```
+
+![404 Not Found](images/postman-404.png)
+
+**Response:**
+```json
+{
+  "code": 404,
+  "message": "Blueprint not found: john/nonexistent",
+  "data": null
+}
+```
+
+---
+
+##### 3.8.2 400 — Invalid Request (missing required field)
+
+**Request:**
+```
+POST http://localhost:8080/api/v1/blueprints
+Content-Type: application/json
+
+{ "name": "test", "points": [] }
+```
+
+![400 Bad Request](images/postman-400.png)
+
+**Response:**
+```json
+{
+  "code": 400,
+  "message": "validation failed: author: must not be blank",
+  "data": null
+}
+```
+
+---
+
+##### 3.8.3 403 — Duplicate Blueprint
+
+**Request:**
+```
+POST http://localhost:8080/api/v1/blueprints
+Content-Type: application/json
+
+{ "author": "john", "name": "house", "points": [] }
+```
+
+![403 Forbidden](images/postman-403.png)
+
+**Response:**
+```json
+{
+  "code": 403,
+  "message": "Blueprint already exists: john/house",
+  "data": null
+}
+```
 
 ### 4. OpenAPI / Swagger
 
